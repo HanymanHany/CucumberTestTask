@@ -1,0 +1,116 @@
+plugins {
+    id 'java'
+    id 'io.qameta.allure' version '2.8.0'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    maven { url "https://plugins.gradle.org/m2/" }
+    //maven { url "https://dl.bintray.com/qameta/maven-unstable/" }
+    mavenCentral()
+    mavenLocal()
+
+    //noinspection JCenterRepository
+    //jcenter()
+}
+
+
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+def junitVersion = "5.8.1",
+    assertjVersion = "3.20.2",
+    allureVersion = "2.14.0",
+    slf4jVersion = "1.7.32",
+    ownerVersion = "1.0.12",
+    restAssuredVersion = "4.4.0",
+    lombokVersion = "1.18.20",
+    fakerVersion = "1.0.2",
+    jacksonVersion = "2.12.4",
+    selenideVersion = "5.23.2",
+    cucumberVersion = "6.11.0"
+
+
+dependencies {
+    implementation(
+            "org.slf4j:slf4j-api:${slf4jVersion}",
+            "org.slf4j:slf4j-simple:${slf4jVersion}",
+            "org.aeonbits.owner:owner:${ownerVersion}",
+            "org.projectlombok:lombok:${lombokVersion}",
+            "com.github.javafaker:javafaker:${fakerVersion}",
+            "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}",
+            "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}",
+            "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}",
+            "io.rest-assured:rest-assured:${restAssuredVersion}",
+            "io.rest-assured:json-schema-validator:3.3.0",
+            "com.jayway.jsonpath:json-path:2.6.0",
+            "com.codeborne:selenide:${selenideVersion}",
+            //junit
+            "org.junit.platform:junit-platform-suite:1.8.1",
+            "org.junit.jupiter:junit-jupiter:${junitVersion}",
+            "io.qameta.allure:allure-junit5:${allureVersion}",
+            "io.qameta.allure:allure-java-commons:${allureVersion}",
+            "io.qameta.allure:allure-selenide:${allureVersion}",
+            "io.cucumber:cucumber-java8:${cucumberVersion}",
+            "io.cucumber:cucumber-java:${cucumberVersion}",
+            "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}",
+            "io.qameta.allure:allure-gradle:2.5",
+            "io.qameta.allure:allure-cucumber6-jvm:${allureVersion}",
+            "io.qameta.allure:allure-rest-assured:${allureVersion}",
+
+            "org.assertj:assertj-core:${assertjVersion}"
+    )
+
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+}
+
+configurations {
+    cucumberRuntime {
+        extendsFrom implementation
+    }
+}
+
+apply plugin: 'io.qameta.allure'
+allure {
+    version = allureVersion
+    autoconfigure = false
+    aspectjweaver = true
+    clean = true
+    resultsDir = file(buildDir.absolutePath + '/reports/allure-results')
+}
+
+task api() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = ['--threads', '1', '--glue', 'features/apitests', 'src/test/resources']
+        }
+    }
+}
+tasks.tasks {
+    finalizedBy api
+}
+
+task web() {
+    dependsOn assemble, testClasses
+    doLast {
+        javaexec {
+            main = "io.cucumber.core.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = ['--threads', '1', '--glue', 'features/webTests', 'src/test/resources']
+        }
+    }
+}
+
+tasks.tasks {
+    finalizedBy web
+}
+
